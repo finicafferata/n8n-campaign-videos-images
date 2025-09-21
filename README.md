@@ -1,6 +1,8 @@
-# CrediLinq Video Generator - Local n8n Workflow
+# CrediLinq Video Generator - n8n Workflow
 
-A sophisticated n8n workflow for generating AI-powered brand videos using webhooks instead of Telegram triggers. This workflow creates professional marketing videos by combining AI image generation and video creation with brand-specific prompts.
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/deploy?template=https%3A%2F%2Fgithub.com%2Ffinicafferata%2Fn8n-campaign-videos-images&envs=N8N_BASIC_AUTH_USER%2CN8N_BASIC_AUTH_PASSWORD%2CN8N_ENCRYPTION_KEY%2CGOOGLE_GEMINI_API_KEY%2CFAL_AI_API_KEY%2CKIE_AI_API_KEY&N8N_BASIC_AUTH_USERDesc=Admin+username+for+n8n&N8N_BASIC_AUTH_PASSWORDDesc=Admin+password+for+n8n&N8N_ENCRYPTION_KEYDesc=32+character+encryption+key&GOOGLE_GEMINI_API_KEYDesc=Your+Google+Gemini+API+key&FAL_AI_API_KEYDesc=Your+Fal+AI+API+key&KIE_AI_API_KEYDesc=Your+Kie+AI+API+key)
+
+A sophisticated n8n workflow for generating AI-powered brand videos using webhooks. This workflow creates professional marketing videos by combining AI image generation and video creation with brand-specific prompts.
 
 ## Features
 
@@ -9,18 +11,29 @@ A sophisticated n8n workflow for generating AI-powered brand videos using webhoo
 - **AI Video Creation** - Using Kie AI's veo model
 - **Automated video merging** - Combines multiple clips into a final video
 - **Brand compliance** - Maintains CrediLinq brand guidelines
-- **Local deployment** - Run entirely on your machine with Docker
+- **Railway deployment ready** - One-click deployment to Railway
+- **Local development** - Run on your machine with Docker
 
 ## Prerequisites
 
 - Docker and Docker Compose installed
 - API Keys for:
-  - OpenAI API (for image analysis)
-  - Google Gemini API (for AI agents)
+  - Google Gemini API (for image analysis and AI agents)
   - Fal AI API (for image generation and video merging)
   - Kie AI API (for video generation)
 
-## Quick Start
+## Deployment Options
+
+### Option 1: Deploy to Railway (Recommended)
+
+Click the button at the top of this README to deploy to Railway in one click. You'll need to provide:
+- Admin credentials for n8n
+- Your API keys (Gemini, Fal AI, Kie AI)
+- A 32-character encryption key
+
+After deployment, access your n8n instance at your Railway URL and import the workflow from `workflows/webhook-version.json`.
+
+### Option 2: Local Development
 
 ### 1. Clone the Repository
 
@@ -34,9 +47,6 @@ cd n8n-campaign-videos-images
 Create a `.env` file in the root directory:
 
 ```env
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key
-
 # Google Gemini Configuration
 GOOGLE_GEMINI_API_KEY=your_gemini_api_key
 
@@ -45,6 +55,11 @@ FAL_AI_API_KEY=your_fal_ai_api_key
 
 # Kie AI Configuration
 KIE_AI_API_KEY=your_kie_ai_api_key
+
+# n8n Configuration (for local development)
+N8N_BASIC_AUTH_USER=admin
+N8N_BASIC_AUTH_PASSWORD=changeme
+N8N_ENCRYPTION_KEY=your-32-character-encryption-key
 ```
 
 ### 3. Start n8n with Docker Compose
@@ -63,7 +78,6 @@ This will start n8n on `http://localhost:5678`
 4. Configure your API credentials in n8n:
    - Go to **Credentials** → **New**
    - Add credentials for:
-     - OpenAI API
      - Google Gemini API
      - Fal AI API (HTTP Header Auth)
      - Kie AI API (HTTP Header Auth)
@@ -129,11 +143,9 @@ curl -X POST http://localhost:5678/webhook/video-generator \
 
 ## API Configuration
 
-### OpenAI
-- Used for image analysis
-- Model: `chatgpt-4o-latest`
-
 ### Google Gemini
+- Used for image analysis (replacing OpenAI)
+- Model: `gemini-1.5-flash`
 - Powers the AI agents for prompt generation
 - Used for both image and video prompt creation
 
