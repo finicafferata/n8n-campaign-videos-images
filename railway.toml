@@ -22,6 +22,8 @@ N8N_HIRING_BANNER_ENABLED = "false"
 GENERIC_TIMEZONE = "UTC"
 NODE_ENV = "production"
 N8N_BASIC_AUTH_ACTIVE = "true"
+N8N_SECURE_COOKIE = "false"
+N8N_PROXY_HOPS = "1"
 
 [[services]]
 name = "n8n"
