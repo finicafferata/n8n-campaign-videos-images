@@ -1,0 +1,985 @@
+{
+  "name": "NanoBananaProfessional(Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "video-generator",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        -160
+      ],
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "image-url",
+              "name": "image_url",
+              "value": "={{ $json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "prompt",
+              "name": "prompt",
+              "value": "={{ $json.prompt }}",
+              "type": "string"
+            },
+            {
+              "id": "user-id",
+              "name": "user_id",
+              "value": "={{ $json.user_id || 'anonymous' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        -160
+      ],
+      "id": "process-input",
+      "name": "Process Input"
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "options": {
+          "systemInstruction": "You are an expert image analyst. Analyze images to extract brand elements, colors, and descriptions for marketing purposes."
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Analyze the image and determine if it primarily depicts a PRODUCT/SERVICE UI (website/app/portal), a CHARACTER/PERSON, or BOTH.\n\nIf PRODUCT/SERVICE/UI, return ONLY YAML:\nproduct:\n  brand_name: (e.g., CrediLinq if visible/inferable; otherwise unknown)\n  brand_terms:\n    - Credit-as-a-Service\n    - Embedded finance\n    - B2B PayLater\n    - GMV Financing\n  color_scheme:\n    - hex: (hex of each prominent color)\n      name: (descriptive color name)\n  font_style: (serif/sans-serif; weight cues)\n  logo_lockup: (describe wordmark; note the pink teardrop dot on the \"i\" if visible)\n  ui_elements: (CTA/buttons/cards/menus seen)\n  visual_description: (1–2 concise sentences of the UI only; ignore background)\n  text_verbatim: (list any visible on-screen text EXACTLY; never invent)\n\nIf CHARACTER/PERSON, return ONLY YAML:\ncharacter:\n  role_hint: (e.g., SME owner, vendor, barista, tailor)\n  color_scheme:\n    - hex: ...\n      name: ...\n  outfit_style: (clothing/accessories salient to role)\n  visual_description: (1–2 sentences on look/pose; ignore background)\n  scene_context: (shop/office/home/cafe/street etc.)\n\nIf BOTH, include both blocks.\n\nRules:\n- Output YAML only (no prose).\n- Do not claim rates, timelines, or guarantees.\n- Spell the brand exactly \"CrediLinq\" when present."
+                },
+                {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "={{ $('Process Input').first().json.image_url }}"
+                  }
+                }
+              ],
+              "role": "user"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        256,
+        -160
+      ],
+      "id": "analyze-image",
+      "name": "Analyze image",
+      "credentials": {
+        "googleGeminiOAuthApi": {
+          "id": "gemini-credentials",
+          "name": "Google Gemini API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        16
+      ],
+      "id": "think-tool",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        144
+      ],
+      "id": "gemini-model",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-credentials",
+          "name": "Google Gemini API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"image_scenes\": [\n    {\n      \"image_prompt\": \"emotion: ...\\naction: ...\\ncharacter: ...\\nproduct/logo: ...\\nsetting: ...\\ncamera: ...\\nstyle: ...\\ncomposition: ...\\nlighting: ...\\ncolor_palette: ...\\ntypography: ...\\ntext_accuracy: ...\",\n      \"aspect_ratio_image\": \"2:3\"\n    }\n  ]\n}\n",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        80
+      ],
+      "id": "output-parser-1",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-image",
+              "leftValue": "={{ $json.images[0].url }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        -288
+      ],
+      "id": "if-check",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"scenes\": [\n      {\n        \"video_prompt\": \"dialogue: ...\\naccent: ...\\naction: ...\\ncamera: ...\\nemotion: ...\\nvoice_type: ...\\ncharacter: ...\\nsetting: ...\",\n        \"aspect_ratio_video\": \"9:16\",\n        \"model\": \"veo3_fast\"\n      }\n    ]\n  }",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1328,
+        80
+      ],
+      "id": "output-parser-2",
+      "name": "Structured Output Parser 2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.scenes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        -160
+      ],
+      "id": "split-scenes",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/nano-banana/edit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={  \n    \"prompt\": \"{{$json.image_prompt.replace(/\\\"/g,'\\\\\\\"').replace(/\\n/g, '\\\\n')}}\",\n  \"image_urls\": [\"{{ $('Process Input').first().json.image_url }}\"]\n} ",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        -736
+      ],
+      "id": "create-image",
+      "name": "Create Image",
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fal-ai-credentials",
+          "name": "Fal AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.response_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        -416
+      ],
+      "id": "get-image",
+      "name": "Get Image",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fal-ai-credentials",
+          "name": "Fal AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/veo/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"prompt\":\"{{ $json.video_prompt.replace(/\\n/g, '\\\\n').replace(/\"/g, '\\\\\"') }}\",\n  \"model\": \"{{ $json.model }}\",\n  \"aspectRatio\": \"{{ $json.aspect_ratio_video }}\",\n  \"imageUrls\": \"{{ $json.images[0].url }}\"\n}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1296,
+        -736
+      ],
+      "id": "create-video",
+      "name": "Create Video",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kie-ai-credentials",
+          "name": "Kie AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/veo/record-info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1296,
+        -384
+      ],
+      "id": "get-video",
+      "name": "Get Video",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kie-ai-credentials",
+          "name": "Kie AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "data.response.resultUrls[0]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        -160
+      ],
+      "id": "aggregate-videos",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/ffmpeg-api/merge-videos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"video_urls\": [{{ $json.resultUrls[0].map(url => `\"${url}\"`) }}]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1744,
+        -832
+      ],
+      "id": "combine-clips",
+      "name": "Combine Clips",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fal-ai-credentials",
+          "name": "Fal AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Combine Clips').first().json.response_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1744,
+        -496
+      ],
+      "id": "get-final-video",
+      "name": "Get Final Video",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fal-ai-credentials",
+          "name": "Fal AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        656,
+        -560
+      ],
+      "id": "wait-images",
+      "name": "Wait for Images",
+      "webhookId": "wait-images-webhook"
+    },
+    {
+      "parameters": {
+        "amount": 360
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1296,
+        -544
+      ],
+      "id": "wait-videos",
+      "name": "Wait for Videos",
+      "webhookId": "wait-videos-webhook"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1744,
+        -656
+      ],
+      "id": "wait-fal",
+      "name": "Waiting for Fal",
+      "webhookId": "wait-fal-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-video",
+              "leftValue": "={{ $json.video.url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1984,
+        -320
+      ],
+      "id": "if-video-ready",
+      "name": "Check Video Ready"
+    },
+    {
+      "parameters": {
+        "values": {
+          "values": [
+            {
+              "name": "success",
+              "value": true
+            },
+            {
+              "name": "video_url",
+              "value": "={{ $json.video.url }}"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $('Process Input').first().json.user_id }}"
+            },
+            {
+              "name": "processing_time",
+              "value": "completed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2224,
+        -160
+      ],
+      "id": "response-success",
+      "name": "Response Success"
+    },
+    {
+      "parameters": {
+        "values": {
+          "values": [
+            {
+              "name": "success",
+              "value": false
+            },
+            {
+              "name": "error",
+              "value": "Video generation in progress. Please retry."
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $('Process Input').first().json.user_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2224,
+        -320
+      ],
+      "id": "response-retry",
+      "name": "Response Retry"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2464,
+        -160
+      ],
+      "id": "webhook-response",
+      "name": "Webhook Response"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.image_scenes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        976,
+        -160
+      ],
+      "id": "split-image-scenes",
+      "name": "Split Out Images"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1072,
+        -736
+      ],
+      "id": "merge-data",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "images[0].url"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        976,
+        -320
+      ],
+      "id": "aggregate-images",
+      "name": "Aggregate Images"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your task: Create professional brand-ad prompts per the system guidelines.\n\nEnsure a clear arc (Challenge → Solution on the CrediLinq website → Outcome). \nShow the website flow accurately (e.g., \"Get started\", simple online steps) without fabricating text or guarantees.\n\n***\nUser's instructions:\n{{ $('Process Input').first().json.prompt }}\n\n***\nUse the reference image only for character/setting continuity:\n{{ $('Analyze image').first().json.text }}\n\n***\nDuration & count:\n- Each scene ≈ 8s; if no total duration is given, create 3 scenes.\n\nDefaults:\n- aspect_ratio_video: 9:16\n- model: veo3_fast\n- accent: Neutral Southeast Asian English (override if user specifies)\n\nDialogue & voice rules:\n- For EVERY scene, include a line at the top of video_prompt:\n  voice_role: narrator  OR  voice_role: character\n- 1–2 professional lines (≤150 chars) matching the chosen voice_role.\n- Mention \"CrediLinq\" in Scene 1; soft CTA in final scene (e.g., apply online)—no guarantees.\n\nCamera rules:\n- Commercial look: tripod/slider, smooth motion, controlled lighting.\n\nReturn ONLY valid JSON with root key \"scenes\".",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "## SYSTEM: Professional Brand Video Agent (CrediLinq Infomercial)\n\nMission\n  Produce short, polished brand ads that narrate an SME journey:\n  1) Challenge → 2) Solution (CrediLinq) → 3) Outcome.\n\nBrand facts (weave naturally; no hard claims)\n  - Credit-as-a-Service via APIs for digital-first B2B platforms\n  - Products: B2B PayLater and GMV Financing\n  - AI-driven underwriting on real-time signals\n  - Spell the brand exactly \"CrediLinq\"\n\nCompliance guardrails\n  - No APR/rate/fee statements, guarantees, or \"instant/same-day\".\n  - Prefer: \"fast decisions—often in hours\".\n  - No partner name-drops unless provided by user.\n\nA - Ask\n  Generate ONLY structured prompts per schema:\n    - Each scene object:\n      - video_prompt (multi-line string: MUST include the lines\n        *voice_role:*  narrator | character\n        dialogue, accent, action, camera, emotion, voice_type (optional), character, setting)\n      - aspect_ratio_video (default \"9:16\" unless user specifies)\n      - model (default \"veo3_fast\")\n\nG - Guidance (Professional Production)\n  - Voice: narrator-led or on-camera founder; choose ONE per scene via voice_role.\n  - Dialogue: 1–2 concise sentences (≤150 chars), professional, no slang.\n  - Camera: commercial look—tripod/slider, smooth motion; controlled lighting.\n  - Locations: cafe counter, e-commerce pack bench, inventory aisle, office with laptop showing application flow.\n  - Continuity: same character unless user specifies otherwise.\n  - When showing UI, preserve on-screen text and exact \"CrediLinq\" wordmark.\n\nE - Example (format only)\n  {\n    \"scenes\": [\n      {\n        \"video_prompt\": \"voice_role: narrator\\ndialogue: When orders spike, cash flow gets tight—here's my faster path.\\naccent: Neutral Southeast Asian English\\naction: founder walks past stocked shelves, glances to tablet dashboard\\ncamera: cinema camera on slider, smooth push-in\\nemotion: focused, optimistic\\nvoice_type: warm narrator\\ncharacter: SME owner, 30s, smart-casual\\nsetting: tidy warehouse aisle\",\n        \"aspect_ratio_video\": \"9:16\",\n        \"model\": \"veo3_fast\"\n      }\n    ]\n  }\n\nN - Notation\n  - Scene count = ceil(total_duration / 8s) unless user specifies otherwise.\n\nT - Tools\n  - Think check: voice_role present, brand spelling, compliance, professional tone."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        -160
+      ],
+      "id": "pro-video-agent",
+      "name": "Pro Video Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your task: Create professional brand image prompts per the system guidelines.\n\nUse the reference analysis only to ground appearance and setting (do not copy its wording).\nIf the user caption mentions \"scene numbers\" or continuity, IGNORE that context—each output must be a standalone description of a single image and MUST NOT reference any other scenes.\n\n***\nUser's instructions:\n{{ $('Process Input').first().json.prompt }}\n\n***\nReference image analysis (YAML):\n{{ $('Analyze image').first().json.text }}\n\n***\nDefaults:\n- Scene count: if unspecified, output exactly 3 scenes\n- Aspect ratio: infer from user; default 16:9 for ads\n\nHARD CONSTRAINTS\n- Return ONLY valid JSON with root key \"image_scenes\"\n- Produce exactly the requested scene count\n- For each scene, emit image_prompt as a single string with these labeled lines\n  (do not add, remove, or rename labels):\n  emotion:\n  action:\n  character:\n  product/logo:\n  setting:\n  camera:\n  style:\n  composition:\n  lighting:\n  color_palette:\n  typography:\n  text_accuracy:\n- Professional/commercial tone only (no UGC descriptors)\n- Do NOT mention \"Scene\", \"previous\", \"same character\", or any cross-scene continuity\n- Preserve 'CrediLinq' spelling and logo details when present",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "## SYSTEM PROMPT: Professional Brand Image Prompt Generator (CrediLinq) — Standalone Scenes\n\nObjective\n  Produce polished, studio-grade image prompts for brand advertisements featuring CrediLinq.\n\nBrand context (use visually, not as claims)\n  - CrediLinq: Credit-as-a-Service + embedded finance via APIs for B2B platforms\n  - AI-driven underwriting on real-time signals; fast decisions—often in hours\n  - Key solutions: B2B PayLater, GMV Financing\n  - Brand palette: #0B0B45 (navy), #EC1C63 (magenta), #FFFFFF (white)\n  - Spell brand exactly \"CrediLinq\"\n\nCompliance guardrails\n  - No APR/rate/fee statements, no guarantees, no \"instant/same-day\"\n  - Preserve on-screen text and logo exactly; never fabricate UI copy\n\nA - Ask\n  Return ONLY JSON with root \"image_scenes\".\n  Each scene object must contain:\n    - image_prompt  (single string; use \\n between labeled lines below)\n    - aspect_ratio_image  (\"16:9\", \"9:16\", \"3:2\", or \"2:3\")\n\nG - Guidance (Professional Art Direction; NOT UGC)\n  - Camera: cinema camera, 35–85mm primes, tripod/slider, smooth motion implied\n  - Lighting: soft key + controlled fill; clean commercial aesthetic\n  - Environments: modern office, e-commerce workstation, stockroom, retail counter\n  - When the logo or UI appears, describe placement and require text accuracy\n  - **Standalone rule:** prompts MUST NOT reference other scenes or continuity\n    (ban words/phrases: \"Scene\", \"previous\", \"same character\", \"as before\")\n\nE - Example (format only; not prescriptive content)\n  {\n    \"image_scenes\": [\n      {\n        \"image_prompt\": \"emotion: confident, solution-oriented\\naction: entrepreneur reviewing funding dashboard on laptop; clear UI panels visible\\ncharacter: 30s founder, smart-casual, focused\\nproduct/logo: CrediLinq wordmark visible in the header bar of the dashboard; unaltered\\nsetting: contemporary office desk with organized paperwork\\ncamera: cinema camera, 50mm prime, tripod, controlled lighting\\nstyle: premium commercial photography, minimal grain\\ncomposition: rule-of-thirds; laptop angled 30°; unobstructed logo\\nlighting: soft key with fill and subtle rim; neutral white balance\\ncolor_palette: navy, magenta, white accents\\ntypography: preserve 'CrediLinq' exactly with pink teardrop dot on the 'i'\\ntext_accuracy: preserve visible UI text exactly; do not add slogans\",\n        \"aspect_ratio_image\": \"16:9\"\n      }\n    ]\n  }\n\nN - Notation\n  - Output must be valid JSON only; no markdown or commentary\n  - Enforce spelling of \"CrediLinq\"; enforce the Standalone rule\n\nT - Tools\n  - Preflight check: strip/replace any cross-scene wording; validate schema & brand constraints before emitting"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        -160
+      ],
+      "id": "pro-image-agent",
+      "name": "Pro Image Agent"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Process Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Input": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Pro Image Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "Pro Image Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Pro Video Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Pro Image Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Pro Video Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser 2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Pro Image Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate Images",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait for Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser 2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Pro Video Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Create Image": {
+      "main": [
+        [
+          {
+            "node": "Wait for Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video": {
+      "main": [
+        [
+          {
+            "node": "Wait for Videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Combine Clips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Clips": {
+      "main": [
+        [
+          {
+            "node": "Waiting for Fal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Images": {
+      "main": [
+        [
+          {
+            "node": "Get Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Videos": {
+      "main": [
+        [
+          {
+            "node": "Get Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Waiting for Fal": {
+      "main": [
+        [
+          {
+            "node": "Get Final Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Final Video": {
+      "main": [
+        [
+          {
+            "node": "Check Video Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Video Ready": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Success": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Retry": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Images": {
+      "main": [
+        [
+          {
+            "node": "Create Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Create Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Images": {
+      "main": [
+        [
+          {
+            "node": "Pro Video Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pro Video Agent": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pro Image Agent": {
+      "main": [
+        [
+          {
+            "node": "Split Out Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "webhook-1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "local-instance"
+  },
+  "id": "webhook-campaign-generator",
+  "tags": ["webhook", "video-generation", "ai"]
+}

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrediLinq Video Generator - Test Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0B0B45 0%, #1a1a5e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            color: #0B0B45;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .logo span {
+            color: #EC1C63;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="url"],
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="url"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #EC1C63;
+            box-shadow: 0 0 0 3px rgba(236, 28, 99, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .sample-prompts {
+            margin-top: 10px;
+        }
+
+        .sample-btn {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .sample-btn:hover {
+            background: #EC1C63;
+            color: white;
+            border-color: #EC1C63;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #EC1C63 0%, #ff4d7d 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(236, 28, 99, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(236, 28, 99, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .status.processing {
+            background: #fff3e0;
+            border: 1px solid #ffcc80;
+            color: #e65100;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            border: 1px solid #81c784;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background: #ffebee;
+            border: 1px solid #ef5350;
+            color: #c62828;
+        }
+
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .result-content {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .video-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .video-preview video {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #EC1C63;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .endpoint-info {
+            background: #f0f7ff;
+            border: 1px solid #2196F3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 13px;
+        }
+
+        .endpoint-url {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Credi<span>Linq</span></div>
+            <div class="subtitle">Video Generation Test Client</div>
+        </div>
+
+        <div class="endpoint-info">
+            <strong>Webhook Endpoint:</strong>
+            <div class="endpoint-url" id="endpointUrl">http://localhost:5678/webhook/video-generator</div>
+        </div>
+
+        <form id="videoForm">
+            <div class="form-group">
+                <label for="imageUrl">Image URL *</label>
+                <input
+                    type="url"
+                    id="imageUrl"
+                    name="imageUrl"
+                    placeholder="https://example.com/image.jpg"
+                    required
+                >
+                <div class="sample-prompts">
+                    <button type="button" class="sample-btn" onclick="setTestImage()">
+                        Use Test Image
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="prompt">Video Generation Prompt *</label>
+                <textarea
+                    id="prompt"
+                    name="prompt"
+                    placeholder="Describe the video scenes you want to generate..."
+                    required
+                ></textarea>
+                <div class="sample-prompts">
+                    <button type="button" class="sample-btn" onclick="setSamplePrompt(1)">
+                        SME Journey
+                    </button>
+                    <button type="button" class="sample-btn" onclick="setSamplePrompt(2)">
+                        Product Demo
+                    </button>
+                    <button type="button" class="sample-btn" onclick="setSamplePrompt(3)">
+                        Brand Story
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="userId">User ID (Optional)</label>
+                <input
+                    type="text"
+                    id="userId"
+                    name="userId"
+                    placeholder="user-123"
+                    style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px;"
+                >
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                Generate Video
+            </button>
+        </form>
+
+        <div id="status" class="status">
+            <div class="status-title"></div>
+            <div class="status-message"></div>
+            <div class="result-content"></div>
+            <div class="video-preview"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('videoForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusDiv = document.getElementById('status');
+        const endpointUrl = document.getElementById('endpointUrl').textContent;
+
+        // Sample prompts
+        const samplePrompts = {
+            1: `Man is seen at various landmarks around Riyadh, Saudi Arabia, walking casually and looking at the camera with excitement.
+
+Scene 1: Credit underwriting has stayed the same for decades. But AI is changing that.
+Scene 2: I'll be talking about this at #Money2020 Riyadh.
+Scene 3: Stop by for insights that will transform your current process!`,
+
+            2: `Show the CrediLinq platform in action, demonstrating the quick approval process.
+
+Scene 1: SME owner applies for financing through the portal
+Scene 2: AI analyzes the application in real-time
+Scene 3: Approval notification arrives, business continues to grow`,
+
+            3: `Tell the CrediLinq brand story through visual metaphors.
+
+Scene 1: Traditional banking - long queues, paper forms
+Scene 2: Digital transformation - instant connections, AI-powered decisions
+Scene 3: The future of B2B finance - embedded, seamless, powerful`
+        };
+
+        function setTestImage() {
+            document.getElementById('imageUrl').value = 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=800';
+        }
+
+        function setSamplePrompt(id) {
+            document.getElementById('prompt').value = samplePrompts[id];
+        }
+
+        function updateStatus(type, title, message, data = null) {
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            statusDiv.querySelector('.status-title').textContent = title;
+            statusDiv.querySelector('.status-message').textContent = message;
+
+            const resultContent = statusDiv.querySelector('.result-content');
+            const videoPreview = statusDiv.querySelector('.video-preview');
+
+            if (data) {
+                resultContent.style.display = 'block';
+                resultContent.textContent = JSON.stringify(data, null, 2);
+
+                // If there's a video URL, show preview
+                if (data.video_url) {
+                    videoPreview.innerHTML = `
+                        <video controls autoplay>
+                            <source src="${data.video_url}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div style="margin-top: 10px;">
+                            <a href="${data.video_url}" target="_blank" style="color: #EC1C63;">Open in new tab</a>
+                        </div>
+                    `;
+                } else {
+                    videoPreview.innerHTML = '';
+                }
+            } else {
+                resultContent.style.display = 'none';
+                videoPreview.innerHTML = '';
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const imageUrl = document.getElementById('imageUrl').value;
+            const prompt = document.getElementById('prompt').value;
+            const userId = document.getElementById('userId').value;
+
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+
+            // Show processing status
+            updateStatus('processing', 'Processing Request', 'Generating your video... This may take 3-5 minutes.');
+            statusDiv.querySelector('.result-content').innerHTML = '<div class="spinner"></div>';
+
+            try {
+                const response = await fetch(endpointUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_url: imageUrl,
+                        prompt: prompt,
+                        user_id: userId || 'test-user'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    updateStatus('success', 'Video Generated Successfully!',
+                        'Your video has been created and is ready to view.', result);
+                } else if (!result.success && result.error) {
+                    updateStatus('processing', 'Still Processing',
+                        result.error + ' Please wait a moment and try again.', result);
+                } else {
+                    updateStatus('error', 'Generation Failed',
+                        'An error occurred during video generation.', result);
+                }
+            } catch (error) {
+                updateStatus('error', 'Connection Error',
+                    `Failed to connect to n8n webhook: ${error.message}`,
+                    { error: error.message });
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Generate Video';
+            }
+        });
+
+        // Update endpoint URL based on current location
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            document.getElementById('endpointUrl').textContent =
+                `${window.location.protocol}//${window.location.hostname}:5678/webhook/video-generator`;
+        }
+    </script>
+</body>
+</html>
