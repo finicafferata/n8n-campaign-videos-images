@@ -233,7 +233,7 @@
 
         <div class="endpoint-info">
             <strong>Webhook Endpoint:</strong>
-            <div class="endpoint-url" id="endpointUrl">http://localhost:5678/webhook/video-generator</div>
+            <div class="endpoint-url" id="endpointUrl">https://credilinq.up.railway.app/webhook/video-generator</div>
         </div>
 
         <form id="videoForm">
@@ -416,11 +416,8 @@ Scene 3: The future of B2B finance - embedded, seamless, powerful`
             }
         });
 
-        // Update endpoint URL based on current location
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            document.getElementById('endpointUrl').textContent =
-                `${window.location.protocol}//${window.location.hostname}:5678/webhook/video-generator`;
-        }
+        // Use Railway production URL
+        document.getElementById('endpointUrl').textContent = 'https://credilinq.up.railway.app/webhook/video-generator';
     </script>
 </body>
 </html>
