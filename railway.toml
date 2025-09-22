@@ -8,7 +8,18 @@ restartPolicyMaxRetries = 10
 
 [variables]
 N8N_HOST = "0.0.0.0"
-PORT = "5678"
+N8N_PORT = "5678"
+N8N_PROTOCOL = "https"
+NODE_ENV = "production"
+DB_TYPE = "postgresdb"
+DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED = "false"
+N8N_BASIC_AUTH_ACTIVE = "false"
+N8N_DIAGNOSTICS_ENABLED = "false"
+N8N_VERSION_NOTIFICATIONS_ENABLED = "false"
+N8N_HIRING_BANNER_ENABLED = "false"
+N8N_TEMPLATES_ENABLED = "true"
+N8N_METRICS = "false"
+GENERIC_TIMEZONE = "America/Los_Angeles"
 
 [[services]]
 name = "n8n"
