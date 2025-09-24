@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "n8n workflow for AI video generation",
   "scripts": {
-    "start": "n8n start"
+    "start": "n8n start",
+    "dev": "npx serve test-client -p 3000",
+    "serve": "npx serve test-client"
   },
   "dependencies": {
     "n8n": "^1.40.0"
